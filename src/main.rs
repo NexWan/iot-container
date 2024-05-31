@@ -32,7 +32,7 @@ fn main() -> anyhow::Result<()>{
 
     // Configure the watchdog timer
     let config = TWDTConfig {
-        duration: std::time::Duration::from_secs(10),
+        duration: std::time::Duration::from_secs(30),
         panic_on_trigger: false, // this tells the esp not to Panic if the watchdog triggers
         subscribed_idle_tasks: enumset::enum_set!(Core::Core1), // Subscribe to idle tasks on Core1 (core reading the ultarsonic sensor)
     };
@@ -70,8 +70,8 @@ fn main() -> anyhow::Result<()>{
             already_sent = true;
         } 
 
-        if ready && distance > 10.0 && already_sent {
-            //envío petición VACIO
+        if ready && distance > 10.0 && button.is_low() && already_sent {
+           //envío petición VACIO
             app.client.process_request(0, &mut led)?;
             already_sent = false;
         }

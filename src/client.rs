@@ -6,6 +6,7 @@ use esp_idf_svc::http::{
 };
 use embedded_svc::http::client::Client as HttpClient;
 use esp_idf_hal::gpio::{PinDriver, AnyOutputPin, Output};
+use std::time::Duration;
 // use embedded_svc::http::client::Response;
 
 pub struct Client {
@@ -22,6 +23,7 @@ impl Client {
         let connection = EspHttpConnection::new(&Configuration {
             use_global_ca_store: true,
             crt_bundle_attach: Some(esp_idf_svc::sys::esp_crt_bundle_attach),
+            timeout: Some(Duration::from_secs(20)),
             ..Default::default()
         })?;
 
@@ -55,18 +57,28 @@ impl Client {
     ) -> anyhow::Result<()> {
         // Define the JSON body
         let state = &format!("{}", state);
-        println!("state: {}, container: {}", &state, &self.container_id);
+        println!("state: {}, container: {}", &state, 1);
         let body = json!({
             "lleno": &state,
-            "id_": &self.container_id
+            "id": 1 //This is hardoded since I'm using it for testing
         });
         let binding = body.to_string();
 
         let content_length_header = format!("{}", binding.len());
 
+        let mut _tunnelReminder = ""; //Since I'm using localtunnel I need to have a header to
+                                     //bypass the password in localtunnel
+
+        if state.eq("1"){
+            _tunnelReminder = "true";
+        }else{
+            _tunnelReminder = "false";
+        }
+
         let headers = [
             ("content-type", "application/json"),
-            ("content-length", &*content_length_header)
+            ("content-length", &*content_length_header),
+            ("bypass-tunnel-reminder", &_tunnelReminder)
         ];
 
         let mut request = self
@@ -77,9 +89,12 @@ impl Client {
             )?;
 
         request.write_all(binding.as_bytes())?;
+
         request.flush()?;
 
-        let response = request.submit()?;
+        let response = request.submit()?; //This needs to be handled
+
+
 
         println!("{}", response.status());
 
